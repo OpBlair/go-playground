@@ -37,6 +37,20 @@ func main() {
 	difference := subFunc(10, 7)
 	fmt.Printf("Subtraction Result: %d\n", difference)
 
+	/* ==== Exercise ===== */
+	fmt.Printf("\n ===== Go Exercises ===== \n")
+	data := []int{4, 2, 9, 1, 5, 6}
+	min, max, avg := AnalyzeStats(data)
+	fmt.Printf("Min: %d, Max: %d, Avg: %.2f\n", min, max, avg)
+
+	LogInfo("WARNING:", "Disk space low", "CPU temperature high", "Service restarting")
+
+	// Anonymous Function
+	fmt.Printf("\nDealing with Anonymous Functions\n")
+	counter := MakeCounter()
+	fmt.Println(counter())
+	fmt.Println(counter())
+	fmt.Println(counter())
 }
 
 func greet() {
@@ -70,4 +84,38 @@ func sumAll(numbers ...int) int {
 		total += num
 	}
 	return total
+}
+
+/*========= Exercise ========*/
+func AnalyzeStats(nums []int) (int, int, float64) {
+	min := nums[0]
+	max := nums[0]
+	var sum int
+	for i := 0; i <= len(nums)-1; i++ {
+		if nums[i] < min {
+			min = nums[i]
+		}
+		if nums[i] > max {
+			max = nums[i]
+		}
+		sum += nums[i]
+	}
+	avg := float64(sum) / float64(len(nums))
+	return min, max, avg
+}
+
+func LogInfo(prefix string, messages ...string) {
+	fmt.Printf("\nPrinting Logs\n")
+	for _, msg := range messages {
+		fmt.Printf("%s : %s \n", prefix, msg)
+	}
+}
+
+func MakeCounter() func() int {
+	count := 0
+
+	return func() int {
+		count++
+		return count
+	}
 }
