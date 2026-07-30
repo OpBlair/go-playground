@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 func main() {
@@ -32,6 +33,7 @@ func main() {
 	FizzBuzz()
 	LeapYearValidator()
 	Calculator()
+	PasswordAttempt()
 }
 
 func FizzBuzz() {
@@ -119,6 +121,38 @@ func Calculator() {
 			default:
 				fmt.Println("Invalide input, Try again")
 			}
+		}
+	}
+}
+
+func PasswordAttempt() {
+	password := "password123"
+	var inputPwd string
+	var failedAttempt int
+	maxAttempts := 3
+
+	for {
+		fmt.Print("Enter Password: ")
+		fmt.Scanln(&inputPwd)
+
+		if inputPwd == password {
+			fmt.Println("Logging in...")
+			return
+		}
+
+		fmt.Println("Incorrect password. Try again")
+		failedAttempt++
+
+		if failedAttempt >= maxAttempts {
+			fmt.Println("Too many attempts. Try again in ...")
+
+			for i := 10; i > 0; i-- {
+				fmt.Printf("Try again in %d \r", i)
+				time.Sleep(1 * time.Second)
+			}
+
+			fmt.Println("You can now enter password.")
+			failedAttempt = 0
 		}
 	}
 }
