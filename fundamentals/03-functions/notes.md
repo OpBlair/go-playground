@@ -2,6 +2,11 @@
 
 ## Key Takeaways
 
+### 0. Function Naming Convention & Visibility
+
+* **Exported (Public):** Functions starting with an **uppercase letter** (conventionally written in `PascalCase`) are visible and accessible outside the package.
+* **Unexported (Private):** Functions starting with a **lowercase letter** (conventionally written in `camelCase`) are restricted to the package where they are defined.
+
 ### 1. Function Declarations & Signatures
 
 * Syntax: Declared using the func keyword, followed by the name, parameters with explicit types, and the return type(s).
