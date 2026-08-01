@@ -7,11 +7,11 @@ This directory contains my hands-on code experiments, notes, and exercises cover
 | Topic | Folder | Status | Key Concepts |
 | :--- | :--- | :--- | :--- |
 | **01. Basics & Types** | [`01-basics/`](./01-basics/) | Completed | Variables, Constants, Zero Values, Type Conversion, Formatting Verbs |
-| **02. Control Flow** | `02-control-flow/` | Upcoming | `if/else`, `switch`, `for` loops |
-| **03. Functions** | `03-functions/` | Upcoming | Multiple returns, variadic functions, closures |
-| **04. Collections** | `04-collections/` | Upcoming | Arrays, Slices, Maps |
-| **05. Pointers** | `05-pointers/` | Upcoming | Memory addresses, dereferencing, pass-by-reference |
-| **06. Structs & Methods** | `06-structs/` | Upcoming | Custom types, receiver functions |
+| **02. Control Flow** | `02-control-flow/` | Completed | `if/else`, `switch`, `for` loops |
+| **03. Functions** | `03-functions/` | Completed | Multiple returns, variadic functions, closures |
+| **04. Collections** | `04-collections/` | Completed | Arrays, Slices, Maps |
+| **05. Pointers** | `05-pointers/` | Completed | Memory addresses, dereferencing, pass-by-reference |
+| **06. Structs & Methods** | `06-structs/` | Completed | Custom types, receiver functions |
 | **07. Interfaces** | `07-interfaces/` | Upcoming | Behavior implementation, polymorphism |
 | **08. Error Handling** | `08-errors/` | Upcoming | The `error` interface, custom errors, panic/recover |
 
