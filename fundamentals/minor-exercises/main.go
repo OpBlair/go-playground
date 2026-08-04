@@ -171,46 +171,39 @@ func (c *Cart) ListProducts() {
 	for _, product := range c.Items {
 		fmt.Printf("| %-10s | %-8d | %-8.2f | %-8.2f |\n", product.Name, product.Quantity, product.Price, product.Price*float64(product.Quantity))
 	}
+
+	fmt.Printf("\n ===== Zoo ====== \n")
+	dog := Dog{}
+	cat := Cat{}
+	lion := Lion{}
+
+	MakeThemSpeak(dog)
+	MakeThemSpeak(&cat)
+	MakeThemSpeak(&lion)
 }
 
 // Zoo
 type Animal interface {
-	Speak()
+	Speak() string
 }
 
 type Dog struct{}
 type Cat struct{}
 type Lion struct{}
 
-func MakeThemSpeak() error {
-	return nil
+func (d Dog) Speak() string {
+	return "Dog says \"woof woof\""
 }
 
-// Payment System
+func (c *Cat) Speak() string {
+	return "Cat says \"meow meow\""
+}
 
-// To-Do App
-/*
+func (l *Lion) Speak() string {
+	return "Lion says \"roar roar\""
+}
 
-As an extra challenge, you could add features like:
-
-Prevent adding products with a negative price.
-Return an error if RemoveProduct is asked to remove something that's not in the cart.
-Print a receipt showing all products and the total.
-
-* Zoo
-Animal interface with Speak()
-Dog, Cat, Lion, etc.
-Store different animals in a single slice and make them all speak
-
-* Payment System
-Expand your current example with Stripe, PayPal, and MobileMoney
-Make some payments fail under certain conditions
-Handle the errors in Checkout
-
-* Simple CLI To-Do App
-Add tasks
-List tasks
-Mark tasks complete
-Remove tasks
-
-*/
+func MakeThemSpeak(a Animal) error {
+	fmt.Println(a.Speak())
+	return nil
+}
