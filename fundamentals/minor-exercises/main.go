@@ -48,21 +48,30 @@ func main() {
 	fmt.Printf("\n ==== Shopping Cart =====\n")
 	cart := Cart{}
 
-	phone := Product{
-		Name:     "Phone",
-		Price:    300,
-		Quantity: 2,
+	phone := Product{Name: "Phone", Price: 300, Quantity: 2}
+	laptop := Product{Name: "Laptop", Price: 500, Quantity: 5}
+	keyboard := Product{Name: "Keyboard", Price: -100, Quantity: 1}
+
+	if err := cart.AddProduct(phone); err != nil {
+		fmt.Println("Error:", err)
 	}
-	laptop := Product{
-		Name:     "Laptop",
-		Price:    500,
-		Quantity: 5,
+	if err := cart.AddProduct(laptop); err != nil {
+		fmt.Println("Error:", err)
+	}
+	if err := cart.AddProduct(keyboard); err != nil {
+		fmt.Println("Error:", err)
 	}
 
-	cart.AddProduct(phone)
-	cart.AddProduct(laptop)
+	fmt.Println("\n--- Cart Before Removal ---")
 	cart.ListProducts()
-	cart.RemoveProduct(phone.Name)
+
+	fmt.Println("\n--- Removing Phone ---")
+	if err := cart.RemoveProduct(phone.Name); err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	fmt.Println("\n--- Cart After Removal ---")
+	cart.ListProducts()
 
 	fmt.Printf("\n ===== Zoo ====== \n")
 	dog := Dog{}
@@ -78,6 +87,15 @@ func main() {
 	for _, animal := range animals {
 		MakeThemSpeak(animal)
 	}
+
+	fmt.Printf("====== Payment System ======\n")
+	paymentOptions := []PaymentGateway{Stripe{}, PayPal{}, MoMo{}}
+	for _, paymentOption := range paymentOptions {
+		err := Checkout(paymentOption)
+		if err != nil {
+			break
+		}
+	}
 }
 
 // Bank account
@@ -90,7 +108,7 @@ func (a *Account) Deposit(amount float64) error {
 		return fmt.Errorf("deposit amount must be greater than 0")
 	}
 	a.Balance += amount
-	fmt.Printf("\nDeposit successful. New Balance: %2.f", a.Balance)
+	fmt.Printf("\nDeposit successful. New Balance: %.2f", a.Balance)
 	return nil
 }
 
@@ -186,6 +204,7 @@ func (c *Cart) ListProducts() {
 	for _, product := range c.Items {
 		fmt.Printf("| %-10s | %-8d | %-8.2f | %-8.2f |\n", product.Name, product.Quantity, product.Price, product.Price*float64(product.Quantity))
 	}
+	fmt.Printf("| %-32s | %-8.2f |\n", "Total Item Price", c.CalculateTotal())
 }
 
 // Zoo
@@ -212,4 +231,57 @@ func (l *Lion) Speak() string {
 func MakeThemSpeak(a Animal) error {
 	fmt.Println(a.Speak())
 	return nil
+}
+
+// Payment System
+type PaymentGateway interface {
+	Pay(amount float64) error
+}
+
+type Stripe struct{}
+type PayPal struct{}
+type MoMo struct{}
+
+func (s Stripe) Pay(amount float64) error {
+	if amount <= 0 {
+		return fmt.Errorf("Amount must be greater than zero")
+	}
+	if amount >= 1000 {
+		return fmt.Errorf("The amount $%.2f exceeds daily transaction limit", amount)
+	}
+	fmt.Printf("Paid %.2f using Stripe\n", amount)
+	return nil
+}
+
+func (p PayPal) Pay(amount float64) error {
+	if amount <= 0 {
+		return fmt.Errorf("Amount must be greater than zero")
+	}
+	if amount >= 1200 {
+		return fmt.Errorf("The amount $%.2f exceeds daily transaction limit", amount)
+	}
+	fmt.Printf("Paid %.2f using Paypal\n", amount)
+	return nil
+}
+
+func (m MoMo) Pay(amount float64) error {
+	if amount <= 0 {
+		return fmt.Errorf("Amount must be greater than zero")
+	}
+	if amount >= 3000 {
+		return fmt.Errorf("The amount $%.2f exceeds daily transaction limit", amount)
+	}
+	fmt.Printf("Paid %.2f using Mobile Money\n", amount)
+	return nil
+}
+
+func Checkout(g PaymentGateway) error {
+	err := g.Pay(100)
+
+	if err != nil {
+		fmt.Println()
+		fmt.Println("Error:", err)
+	}
+
+	return err
 }
