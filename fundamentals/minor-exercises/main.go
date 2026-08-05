@@ -63,6 +63,21 @@ func main() {
 	cart.AddProduct(laptop)
 	cart.ListProducts()
 	cart.RemoveProduct(phone.Name)
+
+	fmt.Printf("\n ===== Zoo ====== \n")
+	dog := Dog{}
+	cat := Cat{}
+	lion := Lion{}
+
+	MakeThemSpeak(dog)
+	MakeThemSpeak(&cat)
+	MakeThemSpeak(&lion)
+
+	animals := []Animal{Dog{}, &Cat{}, &Lion{}}
+
+	for _, animal := range animals {
+		MakeThemSpeak(animal)
+	}
 }
 
 // Bank account
@@ -171,15 +186,6 @@ func (c *Cart) ListProducts() {
 	for _, product := range c.Items {
 		fmt.Printf("| %-10s | %-8d | %-8.2f | %-8.2f |\n", product.Name, product.Quantity, product.Price, product.Price*float64(product.Quantity))
 	}
-
-	fmt.Printf("\n ===== Zoo ====== \n")
-	dog := Dog{}
-	cat := Cat{}
-	lion := Lion{}
-
-	MakeThemSpeak(dog)
-	MakeThemSpeak(&cat)
-	MakeThemSpeak(&lion)
 }
 
 // Zoo
