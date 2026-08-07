@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment System</title>
+    <script defer src="script.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #121214;
+            font-family: Arial, sans-serif;
+            color: #e1e1e6;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: #202024;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #323238;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            width: 280px;
+        }
+
+        select, input, button {
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #323238;
+            border-radius: 6px;
+            background-color: #121214;
+            color: #e1e1e6;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+            color-scheme: dark; 
+        }
+
+        select:hover, input:hover {
+            background-color: #1c1c1f;
+            border-color: #43434c;
+        }
+
+        /* Fixed blue focus styling with matching blue glow */
+        select:focus, input:focus {
+            background-color: #141c24; 
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        /* Fixed dropdown options styling (dark background with white text) */
+        select option {
+            background-color: #202024;
+            color: #e1e1e6;
+        }
+
+        select option[disabled] {
+            color: #7c7c8a;
+        }
+
+        /* Remove increment/decrement arrows for number inputs */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <form action="">
+            <select name="payment-options" id="payment-method" required>
+                <option value="" disabled selected>Select payment type</option>
+                <option value="stripe">Stripe</option>
+                <option value="paypal">PayPal</option>
+                <option value="momo">MoMo</option>
+            </select>
+            <input type="number"id="amount" min="0" placeholder="Enter amount" required>
+            <button type="submit" id="payment-btn">Pay</button>
+        </form>
+    </main>
+</body>
+</html>
