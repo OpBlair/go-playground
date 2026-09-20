@@ -1,19 +1,20 @@
-# 📝 Go CLI To-Do App
+# Go CLI To-Do App
 
 A simple command-line TODO application built with Go.
 
 This project is a learning project focused on practicing Go fundamentals by building a practical CLI application.
 
-## ✨ Features
+## Features
 
 * **Add Tasks:** Create new tasks with custom names and set priority levels (**High**, **Medium**, **Low**).
 * **List Tasks:** View all tasks in a clean, organized table with their current status and priority.
 * **Mark Complete:** Mark tasks as completed once they are finished.
 * **Remove Tasks:** Delete tasks with a confirmation prompt.
+* **Edit Tasks:** Edit an existing task.
 * **Validate User Input:** Handle invalid input with error checking.
 * **Interactive CLI:** Navigate the application through a simple command-line menu.
 
-## 💡 Example
+## Example
 
 ```text
 ===== TO-DO App ======
@@ -21,6 +22,7 @@ This project is a learning project focused on practicing Go fundamentals by buil
 2. List Tasks
 3. Mark Tasks Complete
 4. Remove Tasks
+5. Edit Task
 0. Exit
 
 Enter your choice: 1
@@ -46,13 +48,13 @@ Tasks are displayed with their priority and completion status:
 * Go 1.20 or newer
 * [Download and Install Go](https://go.dev/dl/)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
-cd <repository-directory>
+git clone https://github.com/go-playground
+cd go-playground/go-exercises/CLI\TO-DO\App
 ```
 
 ### 2. Initialize the Go module
@@ -69,7 +71,7 @@ go mod init todo-app
 go run .
 ```
 
-## 🕹️ Usage
+## Usage
 
 When you launch the application, you will see the following menu:
 
@@ -89,7 +91,7 @@ Enter your choice:
 * **`4` — Remove Tasks:** Enter a task number and confirm with `Y` to delete it or `N` to cancel.
 * **`0` — Exit:** Exits the application.
 
-## 🧠 Go Concepts Practiced
+## Go Concepts Practiced
 
 This project is being developed incrementally while learning Go.
 
@@ -109,7 +111,7 @@ Some of the core concepts practiced in the codebase include:
 * String formatting with `fmt.Printf`
 * Unicode characters
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 .
@@ -127,7 +129,7 @@ Some of the core concepts practiced in the codebase include:
 * **`MarkComplete()`** — Updates a task's status to completed.
 * **`RemoveTask()`** — Removes a task from the slice after user confirmation.
 
-## 🔮 Future Improvements
+## Future Improvements
 
 * Toggle tasks between complete and incomplete
 * Improve CLI formatting and styling
@@ -138,6 +140,6 @@ Some of the core concepts practiced in the codebase include:
 * Improve input validation
 * Refactor the application into multiple packages
 
-## 🎯 Purpose
+## Purpose
 
 The goal of this project is to learn Go by building a practical application and gradually applying new concepts as they are learned.
