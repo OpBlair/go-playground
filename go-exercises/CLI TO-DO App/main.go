@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -15,7 +16,12 @@ type Task struct {
 	Priority    string
 }
 
+const dataFile = "tasks.json"
+
 func main() {
+
+	LoadTasks()
+
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
@@ -49,23 +55,57 @@ func main() {
 		case 1:
 			fmt.Println("Adding tasks")
 			AddTask(scanner)
+			SaveTasks()
 		case 2:
 			ListTasks()
+			SaveTasks()
 		case 3:
 			fmt.Println("marking tasks complete")
 			MarkComplete(scanner)
+			SaveTasks()
 		case 4:
 			fmt.Println("removing tasks")
 			RemoveTask(scanner)
+			SaveTasks()
 		case 5:
 			fmt.Println("Editing task")
 			EditTask(scanner)
+			SaveTasks()
 		case 0:
 			fmt.Println("Exiting...")
 			return
 		default:
 			fmt.Println("Invalid choice. Please enter choice again")
 		}
+	}
+}
+
+func SaveTasks() {
+	data, err := json.MarshalIndent(tasks, "", " ")
+	if err != nil {
+		fmt.Println("Error Saving tasks:", err)
+		return
+	}
+
+	err = os.WriteFile(dataFile, data, 0644)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+	}
+}
+
+func LoadTasks() {
+	if _, err := os.Stat(dataFile); os.IsNotExist(err) {
+		return
+	}
+
+	data, err := os.ReadFile(dataFile)
+	if err != nil {
+		fmt.Println("Error reading tasks:", err)
+	}
+
+	err = json.Unmarshal(data, &tasks)
+	if err != nil {
+		fmt.Println("Error parsing Tasks json:", err)
 	}
 }
 
