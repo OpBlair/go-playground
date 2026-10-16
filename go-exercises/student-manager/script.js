@@ -20,64 +20,78 @@ const roleRedirects = {
     "admin": "admin.html"
 }
 
-// Listen for the form submission
-document.getElementById("loginForm").addEventListener("submit", function(event) {
-    // Stop the page from refreshing immediately
-    event.preventDefault();
+// Listen for the login form submission if it exists on the page
+const loginForm = document.getElementById("loginForm");
+if (loginForm) {
+    loginForm.addEventListener("submit", function(event) {
+        event.preventDefault();
 
-    // 2. Grab the inputs at the exact moment of click
-    const inputEmail = document.getElementById("email").value;
-    const inputPassword = document.getElementById("password").value;
+        const inputEmail = document.getElementById("email").value;
+        const inputPassword = document.getElementById("password").value;
 
-    let authenticatedRole = null;
+        let authenticatedRole = null;
 
-    // Check credentials
-    for (const [role, credentials] of Object.entries(dummy_credentials)) {
-        if (credentials.email === inputEmail && credentials.password == inputPassword) {
-            authenticatedRole = role;
-            break;
+        for (const [role, credentials] of Object.entries(dummy_credentials)) {
+            if (credentials.email === inputEmail && credentials.password == inputPassword) {
+                authenticatedRole = role;
+                break;
+            }
         }
-    }
 
-    // Handle success or failure
-    if (authenticatedRole) {
-        localStorage.setItem("userRole", authenticatedRole);
-        localStorage.setItem("userEmail", inputEmail);
-
-        // Redirect to the role's page
-        window.location.href = roleRedirects[authenticatedRole];
-    } else {
-        alert("Invalid credentials!");
-    }
-});
+        if (authenticatedRole) {
+            localStorage.setItem("userRole", authenticatedRole);
+            localStorage.setItem("userEmail", inputEmail);
+            window.location.href = roleRedirects[authenticatedRole];
+        } else {
+            alert("Invalid credentials!");
+        }
+    });
+}
 
 function openModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('hidden');
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('hidden');
+}
+
+function toggleStudentFields() {
+    const roleSelect = document.getElementById('roleSelect');
+    const studentFields = document.getElementById('studentFields');
+    if (roleSelect && studentFields) {
+        if (roleSelect.value === 'student') {
+            studentFields.style.display = 'block';
+        } else {
+            studentFields.style.display = 'none';
+        }
+    }
 }
 
 function simulateAction(actionName) {
     const consoleLog = document.getElementById('consoleLogText');
-    consoleLog.textContent = `Executed: ${actionName} [UI simulation mockup mode]`;
-    consoleLog.classList.remove('text-emerald-400');
-    consoleLog.classList.add('text-amber-400');
-    setTimeout(() => {
-        consoleLog.classList.remove('text-amber-400');
-        consoleLog.classList.add('text-emerald-400');
-    }, 1000);
+    if (consoleLog) {
+        consoleLog.textContent = `Executed: ${actionName} [UI simulation mockup mode]`;
+        consoleLog.classList.remove('text-emerald-400');
+        consoleLog.classList.add('text-amber-400');
+        setTimeout(() => {
+            consoleLog.classList.remove('text-amber-400');
+            consoleLog.classList.add('text-emerald-400');
+        }, 1000);
+    }
 }
 
 function handleModalSubmit(event, successMessage) {
     event.preventDefault();
     const consoleLog = document.getElementById('consoleLogText');
-    consoleLog.textContent = successMessage;
+    if (consoleLog) {
+        consoleLog.textContent = successMessage;
+    }
             
     // Close all modals
     document.querySelectorAll('[id$="Modal"]').forEach(el => el.classList.add('hidden'));
             
-    // Show alert notice
     alert(successMessage + "\n(Note: This is a non-functional frontend UI mockup connected to your Go backend logic)");
 }
