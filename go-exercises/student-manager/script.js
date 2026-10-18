@@ -1,14 +1,14 @@
 // Hardcoded dummy credentials for login testing
 const dummy_credentials = {
     "student": { "email": "student@westridge.dev", "password": 12345 },
-    "staff": { "email": "staff@westridge.dev", "password": 12345 },
+    "lecturer": { "email": "lecturer@westridge.dev", "password": 12345 },
     "admin": { "email": "admin@westridge.dev", "password": 12345 }
 }
 
 // Redirect paths for each user role
 const roleRedirects = {
     "student": "student.html",
-    "staff": "staff.html",
+    "lecturer": "lecturer.html",
     "admin": "admin.html"
 }
 
