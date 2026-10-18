@@ -1,9 +1,7 @@
--- Tables {programs, users, courses, enrollments, quizzes, grades}
-
 -- Enable UUID extension (great for secure user IDs in URLs)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- strict ENUM type for roles
+-- Strict ENUM type for roles
 CREATE TYPE user_role AS ENUM ('admin', 'lecturer', 'student');
 
 -- Programs Table
@@ -26,7 +24,7 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Courses Table (Electives and Core Courses + Year & Semester)
+-- Courses Table (Added total_weeks for dynamic week generation)
 CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
     code VARCHAR(10) UNIQUE NOT NULL, 
@@ -35,8 +33,20 @@ CREATE TABLE courses (
     is_elective BOOLEAN DEFAULT FALSE, -- FALSE = Core, TRUE = Elective
     academic_year INT NOT NULL CHECK (academic_year > 0), 
     semester INT NOT NULL CHECK (semester IN (1, 2)),      
+    total_weeks INT NOT NULL DEFAULT 12, -- Added: Total weeks for the course outline
     lecturer_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Course Modules / Weekly Outlines Table (Published by Lecturers)
+CREATE TABLE course_modules (
+    id SERIAL PRIMARY KEY,
+    course_id INT REFERENCES courses(id) ON DELETE CASCADE,
+    week_number INT NOT NULL CHECK (week_number > 0),
+    topic_title VARCHAR(200) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(course_id, week_number)
 );
 
 -- Enrollments Table (Many-to-Many: Students to Courses)
@@ -47,11 +57,12 @@ CREATE TABLE enrollments (
     PRIMARY KEY (student_id, course_id)
 );
 
--- Quizzes Table
+-- Quizzes Table (Added week_number to tie quizzes to specific weeks)
 CREATE TABLE quizzes (
     id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     course_id INT REFERENCES courses(id) ON DELETE CASCADE,
+    week_number INT NOT NULL CHECK (week_number > 0), -- Added: Target week for the quiz
     lecturer_id UUID REFERENCES users(id) ON DELETE SET NULL,
     questions JSONB NOT NULL, 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
