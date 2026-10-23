@@ -32,18 +32,27 @@ func loadConfig() Config {
 	}
 }
 
-func main() {
-	cfg := loadConfig()
+// connectDB handles the connection logic and returns the connection or an error.
+func connectDB(ctx context.Context) *pgx.Conn {
+	dbConn := os.Getenv("DB_CONN")
 
-	log.Println("Server initializing configuration...")
-
-	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, cfg.DBConn)
-
+	conn, err := pgx.Connect(ctx, dbConn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
+
+	return conn
+}
+
+func main() {
+	loadConfig()
+
+	log.Println("Server initializing configuration...")
+
+	ctx := context.Background()
+
+	conn := connectDB(ctx)
 	defer conn.Close(ctx)
 
 	fmt.Println("Successfully connected to Westridge DB!")
