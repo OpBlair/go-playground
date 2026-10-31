@@ -15,27 +15,46 @@ const roleRedirects = {
 // Handles login form submission and authentication
 const loginForm = document.getElementById("loginForm");
 if (loginForm) {
-    loginForm.addEventListener("submit", function(event) {
+    loginForm.addEventListener("submit", async function(event) {
         event.preventDefault();
 
         const inputEmail = document.getElementById("email").value;
         const inputPassword = document.getElementById("password").value;
 
-        let authenticatedRole = null;
+        try {
+            // Send credentials to  Go backend
+            const response = await fetch("/api/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: inputEmail,
+                    password: inputPassword
+                })
+            });
 
-        for (const [role, credentials] of Object.entries(dummy_credentials)) {
-            if (credentials.email === inputEmail && credentials.password == inputPassword) {
-                authenticatedRole = role;
-                break;
+            if (!response.ok) {
+                // If Go returned 401 Unauthorized or 400 Bad Request
+                alert("Invalid email or password!");
+                return;
             }
-        }
 
-        if (authenticatedRole) {
-            localStorage.setItem("userRole", authenticatedRole);
-            localStorage.setItem("userEmail", inputEmail);
-            window.location.href = roleRedirects[authenticatedRole];
-        } else {
-            alert("Invalid credentials!");
+            // Parse the JSON response sent from Go
+            const data = await response.json();
+
+            if (data.success && data.role) {
+                // Save user details and redirect based on role
+                localStorage.setItem("userRole", data.role);
+                localStorage.setItem("userEmail", inputEmail);
+                window.location.href = roleRedirects[data.role];
+            } else {
+                alert("Login failed. Please try again.");
+            }
+
+        } catch (error) {
+            console.error("Connection error:", error);
+            alert("Could not connect to the server. Is your Go backend running?");
         }
     });
 }
