@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Config struct {
@@ -99,20 +100,23 @@ func handleLogin(conn *pgx.Conn) http.HandlerFunc {
 		}
 
 		// Query the database using pgx
-		var storedPassword string
+		var storedHash string
 		var role string
 
-		query := "SELECT role, password FROM users WHERE email = $1"
-		err := conn.QueryRow(r.Context(), query, req.Email).Scan(&role, &storedPassword)
+		query := "SELECT role, password_hash FROM users WHERE email = $1"
+		err := conn.QueryRow(r.Context(), query, req.Email).Scan(&role, &storedHash)
 		if err != nil {
 			// If user isn't found or query fails, return unauthorized
-			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+			log.Printf("LOGIN ERROR: User not found for email '%s': %v\n", req.Email, err)
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
-		// Verify password
-		if req.Password != storedPassword {
-			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		// Verify password using bcrypt against the seeded hash
+		err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(req.Password))
+		if err != nil {
+			log.Printf("LOGIN ERROR: Password mismatch for email '%s'\n", req.Email)
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
