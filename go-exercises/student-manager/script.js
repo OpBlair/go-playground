@@ -1,10 +1,3 @@
-// Hardcoded dummy credentials for login testing
-const dummy_credentials = {
-    "student": { "email": "student@westridge.dev", "password": 12345 },
-    "lecturer": { "email": "lecturer@westridge.dev", "password": 12345 },
-    "admin": { "email": "admin@westridge.dev", "password": 12345 }
-}
-
 // Redirect paths for each user role
 const roleRedirects = {
     "student": "student.html",
@@ -43,11 +36,14 @@ if (loginForm) {
             // Parse the JSON response sent from Go
             const data = await response.json();
 
-            if (data.success && data.role) {
-                // Save user details and redirect based on role
-                localStorage.setItem("userRole", data.role);
-                localStorage.setItem("userEmail", inputEmail);
-                window.location.href = roleRedirects[data.role];
+            if (data.success) {
+                localStorage.setItem('westridge_token', data.token);
+                localStorage.setItem('westridge_role', data.role);
+                
+                // Redirect based on role
+                if (data.role === 'admin') window.location.href = 'admin.html';
+                else if (data.role === 'lecturer') window.location.href = 'lecturer.html';
+                else window.location.href = 'student.html';
             } else {
                 alert("Login failed. Please try again.");
             }

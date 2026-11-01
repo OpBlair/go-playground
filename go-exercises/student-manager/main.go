@@ -7,7 +7,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
@@ -18,10 +21,15 @@ type Config struct {
 	DBConn string
 }
 
+// Custom JWT Claims struct
+type Claims struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
+}
+
 func loadConfig() Config {
-
 	err := godotenv.Load()
-
 	if err != nil {
 		log.Println("No .env file found.")
 	}
@@ -35,34 +43,28 @@ func loadConfig() Config {
 	}
 }
 
-// connectDB handles the connection logic and returns the connection or an error.
 func connectDB(ctx context.Context) *pgx.Conn {
 	dbConn := os.Getenv("DB_CONN")
-
 	conn, err := pgx.Connect(ctx, dbConn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
-
 	return conn
 }
 
-func startServer(conn *pgx.Conn) { // <-- Accept conn here
-	// Serve static files (HTML, CSS, JS)
+func startServer(conn *pgx.Conn) {
 	fs := http.FileServer(http.Dir("./"))
 	http.Handle("/", fs)
 
-	// Sample API health check endpoint
 	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status": "healthy", "message": "Westridge API is running!"}`))
 	})
 
-	// Register login route with the database connection!
+	// Public Route
 	http.HandleFunc("/api/login", handleLogin(conn))
 
-	// Use PORT from .env or default to 8080
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {
 		serverPort = "8080"
@@ -77,67 +79,134 @@ func startServer(conn *pgx.Conn) { // <-- Accept conn here
 	}
 }
 
-// Logic to handle Logging in
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// the handler is wrapped so it has access to the pgx connection
+// Helper to generate JWT Token
+func generateJWT(userID, role string) (string, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		secret = "fallback_secret"
+	}
+
+	claims := &Claims{
+		UserID: userID,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
 func handleLogin(conn *pgx.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Check Request Type
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		// Decode the incoming JSON from script.js
 		var req LoginRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		// Query the database using pgx
+		// Query database to get ID, role, and hash
+		var userID string
 		var storedHash string
 		var role string
 
-		query := "SELECT role, password_hash FROM users WHERE email = $1"
-		err := conn.QueryRow(r.Context(), query, req.Email).Scan(&role, &storedHash)
+		query := "SELECT id, role, password_hash FROM users WHERE email = $1"
+		err := conn.QueryRow(r.Context(), query, req.Email).Scan(&userID, &role, &storedHash)
 		if err != nil {
-			// If user isn't found or query fails, return unauthorized
-			log.Printf("LOGIN ERROR: User not found for email '%s': %v\n", req.Email, err)
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
-		// Verify password using bcrypt against the seeded hash
+		// Verify password
 		err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(req.Password))
 		if err != nil {
-			log.Printf("LOGIN ERROR: Password mismatch for email '%s'\n", req.Email)
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
 
-		// Success! Send back the role to frontend script.js
+		// Generate JWT Token
+		tokenString, err := generateJWT(userID, role)
+		if err != nil {
+			http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+
+		// Success! Send back the JWT token and role
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"success": true, "role": "` + role + `"}`))
+		response := map[string]interface{}{
+			"success": true,
+			"token":   tokenString,
+			"role":    role,
+		}
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
+// Context keys for injecting user details safely
+type contextKey string
+
+const userContextKey contextKey = "userClaims"
+
+// Auth Middleware to protect restricted routes
+func authMiddleware(next http.HandlerFunc, requiredRole string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Missing authorization header", http.StatusUnauthorized)
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
+			return
+		}
+
+		tokenStr := parts[1]
+		claims := &Claims{}
+
+		secret := os.Getenv("JWT_SECRET")
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check role restriction if one was specified
+		if requiredRole != "" && claims.Role != requiredRole {
+			http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
+			return
+		}
+
+		// Inject claims into request context so the handler can read the UserID
+		ctx := context.WithValue(r.Context(), userContextKey, claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
 
 func main() {
 	loadConfig()
-
 	log.Println("Server initializing configuration...")
 
 	ctx := context.Background()
-
 	conn := connectDB(ctx)
 	defer conn.Close(ctx)
 
 	fmt.Println("Successfully connected to Westridge DB!")
-
-	// Start the web server
 	startServer(conn)
 }
