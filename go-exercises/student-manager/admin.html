@@ -351,39 +351,36 @@
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-            <form onsubmit="handleModalSubmit(event, 'Course created successfully!')" class="space-y-4">
+            
+            <form onsubmit="handleCreateCourseSubmit(event)" class="space-y-4">
                 <div class="grid grid-cols-3 gap-2">
                     <div class="col-span-1">
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Code</label>
-                        <input type="text" required placeholder="CS101" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="courseCode" required placeholder="CS101" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="col-span-2">
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Course Title</label>
-                        <input type="text" required placeholder="Data Structures" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="courseTitle" required placeholder="Data Structures" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Target Program</label>
-                    <select class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="1">Computer Science (BSCS)</option>
-                        <option value="2">Software Engineering (BSE)</option>
-                        <option value="3">Bachelor of Laws (LLB)</option>
+                    <select id="courseProgramSelect" onchange="handleProgramChangeForCourse()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select a program...</option>
                     </select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Academic Year</label>
-                        <select class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="1">Year 1</option>
-                            <option value="2">Year 2</option>
-                            <option value="3">Year 3</option>
+                        <select id="courseAcademicYear" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select program first...</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Semester</label>
-                        <select class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="courseSemester" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="1">Semester 1</option>
                             <option value="2">Semester 2</option>
                         </select>
@@ -391,8 +388,15 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Assigned Lecturer</label>
+                    <select id="courseLecturerSelect" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Assign a lecturer...</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Course Type</label>
-                    <select class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="courseIsElective" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="false">Core (Compulsory)</option>
                         <option value="true">Elective (Optional)</option>
                     </select>

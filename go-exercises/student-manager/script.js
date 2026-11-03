@@ -61,9 +61,10 @@ function openModal(modalId) {
     if (modal) {
         modal.classList.remove('hidden');
         
-        // If opening the user modal, fetch the latest programs from DB right away!
         if (modalId === 'addUserModal') {
             loadProgramsIntoDropdown();
+        } else if (modalId === 'addCourseModal') {
+            loadCourseModalData();
         }
     }
 }
@@ -349,5 +350,145 @@ async function handleCreateUserSubmit(event) {
     } catch (error) {
         console.error("Connection error:", error);
         alert("Could not connect to the server. Is your Go backend running?");
+    }
+}
+
+// Store loaded programs globally so we can reference their duration easily
+let cachedPrograms = [];
+
+// Load Programs and Lecturers when the Course Modal opens
+async function loadCourseModalData() {
+    const token = localStorage.getItem('westridge_token');
+    if (!token) return;
+
+    try {
+        // Fetch programs list (make sure your Go backend returns duration!)
+        const progResponse = await fetch("/api/programs-list", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (progResponse.ok) {
+            cachedPrograms = await progResponse.json();
+            const progSelect = document.getElementById("courseProgramSelect");
+            progSelect.innerHTML = '<option value="">Select a program...</option>';
+            
+            if (cachedPrograms && cachedPrograms.length > 0) {
+                cachedPrograms.forEach(prog => {
+                    const option = document.createElement("option");
+                    option.value = prog.id;
+                    option.textContent = `${prog.name} (${prog.code}) - [${prog.duration} Years]`;
+                    progSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Fetch lecturers list
+        const lecResponse = await fetch("/api/lecturers-list", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (lecResponse.ok) {
+            const lecturers = await lecResponse.json();
+            const lecSelect = document.getElementById("courseLecturerSelect");
+            lecSelect.innerHTML = '<option value="">Assign a lecturer...</option>';
+            
+            if (lecturers && lecturers.length > 0) {
+                lecturers.forEach(lec => {
+                    const option = document.createElement("option");
+                    option.value = lec.id; // UUID string
+                    option.textContent = `${lec.first_name} ${lec.last_name}`;
+                    lecSelect.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error loading course modal data:", error);
+    }
+}
+
+// Dynamically adjust Academic Year options based on selected program's duration
+function handleProgramChangeForCourse() {
+    const progSelect = document.getElementById("courseProgramSelect");
+    const yearSelect = document.getElementById("courseAcademicYear");
+    const selectedId = parseInt(progSelect.value, 10);
+
+    yearSelect.innerHTML = '<option value="">Select academic year...</option>';
+    if (!selectedId) return;
+
+    // Find the selected program from our cache
+    const program = cachedPrograms.find(p => p.id === selectedId);
+    if (program && program.duration) {
+        for (let i = 1; i <= program.duration; i++) {
+            const option = document.createElement("option");
+            option.value = i;
+            option.textContent = `Year ${i}`;
+            yearSelect.appendChild(option);
+        }
+    }
+}
+
+// Handle Course Creation Submission
+async function handleCreateCourseSubmit(event) {
+    event.preventDefault();
+
+    const code = document.getElementById("courseCode").value;
+    const title = document.getElementById("courseTitle").value;
+    const programId = parseInt(document.getElementById("courseProgramSelect").value, 10);
+    const academicYear = parseInt(document.getElementById("courseAcademicYear").value, 10);
+    const semester = parseInt(document.getElementById("courseSemester").value, 10);
+    const isElective = document.getElementById("courseIsElective").value === "true";
+    
+    // Lecturer ID can be empty/null if none selected
+    const lecturerIdVal = document.getElementById("courseLecturerSelect").value;
+    const lecturerId = lecturerIdVal ? lecturerIdVal : null;
+
+    const token = localStorage.getItem('westridge_token');
+    if (!token) {
+        alert("Unauthorized: Please log in again.");
+        window.location.href = 'index.html';
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/courses", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                code: code,
+                title: title,
+                program_id: programId,
+                academic_year: academicYear,
+                semester: semester,
+                is_elective: isElective,
+                lecturer_id: lecturerId
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            if (response.status === 409) {
+                alert("Error: Course code already exists!");
+            } else if (response.status === 403) {
+                alert("Forbidden: Admin access required.");
+            } else {
+                alert("Failed to create course: " + errorText);
+            }
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message || "Course created successfully!");
+            document.querySelectorAll('[id$="Modal"]').forEach(el => el.classList.add('hidden'));
+            event.target.reset();
+            // location.reload(); // Optional reload
+        } else {
+            alert("Failed to create course.");
+        }
+
+    } catch (error) {
+        console.error("Connection error:", error);
+        alert("Could not connect to the server.");
     }
 }

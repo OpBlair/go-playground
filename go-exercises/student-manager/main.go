@@ -57,9 +57,28 @@ type CreateUserRequest struct {
 
 // Struct for program response items
 type ProgramResponse struct {
-	ID   int    `json:"id"`
-	Code string `json:"code"`
-	Name string `json:"name"`
+	ID       int    `json:"id"`
+	Code     string `json:"code"`
+	Name     string `json:"name"`
+	Duration int    `json:"duration"`
+}
+
+// CREATE COURSE REQUEST PAYLOAD
+type CreateCourseRequest struct {
+	Code         string  `json:"code"`
+	Title        string  `json:"title"`
+	ProgramID    int     `json:"program_id"`
+	IsElective   bool    `json:"is_elective"`
+	AcademicYear int     `json:"academic_year"`
+	Semester     int     `json:"semester"`
+	LecturerID   *string `json:"lecturer_id"`
+}
+
+// STRUCT FOR LECTURER RESPONSE ITEMS
+type LecturerResponse struct {
+	ID        string `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
 }
 
 // Context keys for injecting user details safely
@@ -276,7 +295,7 @@ func handleGetPrograms(conn *pgx.Conn) http.HandlerFunc {
 			return
 		}
 
-		query := "SELECT id, code, name FROM programs ORDER BY name ASC"
+		query := "SELECT id, code, name, duration FROM programs ORDER BY name ASC"
 		rows, err := conn.Query(r.Context(), query)
 		if err != nil {
 			http.Error(w, "Failed to fetch programs", http.StatusInternalServerError)
@@ -287,7 +306,7 @@ func handleGetPrograms(conn *pgx.Conn) http.HandlerFunc {
 		var programs []ProgramResponse
 		for rows.Next() {
 			var p ProgramResponse
-			if err := rows.Scan(&p.ID, &p.Code, &p.Name); err != nil {
+			if err := rows.Scan(&p.ID, &p.Code, &p.Name, &p.Duration); err != nil {
 				http.Error(w, "Error parsing programs", http.StatusInternalServerError)
 				return
 			}
@@ -360,6 +379,98 @@ func handleCreateUser(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // CREATE COURSE API
+func handleCreateCourse(conn *pgx.Conn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req CreateCourseRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Extract user claims from request context (injected by authMiddleware)
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Restrict to admins only
+		if claims.Role != "admin" {
+			http.Error(w, "Forbidden: Admins only", http.StatusForbidden)
+			return
+		}
+
+		// Insert course into database
+		// Note: lecturer_role is hardcoded to 'lecturer' satisfy your composite foreign key constraint
+		query := `
+            INSERT INTO courses (code, title, program_id, is_elective, academic_year, semester, lecturer_id, lecturer_role) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $7::uuid IS NOT NULL THEN 'lecturer'::user_role ELSE NULL END)
+        `
+
+		_, err := conn.Exec(r.Context(),
+			query,
+			req.Code,
+			req.Title,
+			req.ProgramID,
+			req.IsElective,
+			req.AcademicYear,
+			req.Semester,
+			req.LecturerID,
+		)
+
+		if err != nil {
+			log.Printf("Database error creating course: %v\n", err)
+			if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "courses_code_key") {
+				http.Error(w, "Course code already exists", http.StatusConflict)
+				return
+			}
+			http.Error(w, "Failed to create course", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Course created successfully!",
+		})
+	}
+}
+
+// GET LECTURERS API
+func handleGetLecturers(conn *pgx.Conn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		query := "SELECT id, first_name, last_name FROM users WHERE role = 'lecturer' ORDER BY last_name ASC"
+		rows, err := conn.Query(r.Context(), query)
+		if err != nil {
+			http.Error(w, "Failed to fetch lecturers", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var lecturers []LecturerResponse
+		for rows.Next() {
+			var l LecturerResponse
+			if err := rows.Scan(&l.ID, &l.FirstName, &l.LastName); err != nil {
+				http.Error(w, "Error parsing lecturers", http.StatusInternalServerError)
+				return
+			}
+			lecturers = append(lecturers, l)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(lecturers)
+	}
+}
 
 // ==========================================
 // SERVER & ROUTING
@@ -385,6 +496,12 @@ func startServer(conn *pgx.Conn) {
 
 	// Protected route to fetch programs dynamically
 	http.HandleFunc("/api/programs-list", authMiddleware(handleGetPrograms(conn), ""))
+
+	// Fetch Lecturers Route
+	http.HandleFunc("/api/lecturers-list", authMiddleware(handleGetLecturers(conn), ""))
+
+	// Create Course Route
+	http.HandleFunc("/api/courses", authMiddleware(handleCreateCourse(conn), "admin"))
 
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {
