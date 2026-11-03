@@ -65,6 +65,9 @@ func startServer(conn *pgx.Conn) {
 	// Public Route
 	http.HandleFunc("/api/login", handleLogin(conn))
 
+	// Protected Admin Route for Creating Programs
+	http.HandleFunc("/api/programs", authMiddleware(handleCreateProgram(conn), "admin"))
+
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {
 		serverPort = "8080"
@@ -209,4 +212,64 @@ func main() {
 
 	fmt.Println("Successfully connected to Westridge DB!")
 	startServer(conn)
+}
+
+// Program Request
+type CreateProgramRequest struct {
+	ProgramCode     string `json:"program_code"`
+	ProgramName     string `json:"program_name"`
+	ProgramDuration int    `json:"duration"`
+}
+
+// Handle Programs
+func handleCreateProgram(conn *pgx.Conn) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Check method type
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Decode incoming json into struct
+		var req CreateProgramRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Extract user claims from request context (injected by authMiddleware)
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// check the role just to be extra sure
+		if claims.Role != "admin" {
+			http.Error(w, "Forbidden: Admins only", http.StatusForbidden)
+			return
+		}
+
+		// Insert Program into database
+		query := "INSERT INTO programs(code, name, duration) VALUES($1, $2, $3)"
+
+		// Execute the insert query
+		_, err := conn.Exec(r.Context(), query, req.ProgramCode, req.ProgramName, req.ProgramDuration)
+		if err != nil {
+			// Check if it's a duplicate code error (unique constraint violation)
+			if strings.Contains(err.Error(), "duplicate key") {
+				http.Error(w, "Program code already exists", http.StatusConflict)
+				return
+			}
+			http.Error(w, "Failed to create program", http.StatusInternalServerError)
+			return
+		}
+
+		// Send back success response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Program created successfully!",
+		})
+	}
 }
