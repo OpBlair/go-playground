@@ -156,3 +156,68 @@ function handleModalSubmit(event, successMessage) {
     document.querySelectorAll('[id\$="Modal"]').forEach(el => el.classList.add('hidden'));
     alert(successMessage + "\n(Note: This is a non-functional frontend UI mockup connected to your Go backend logic)");
 }
+
+// Handles creating a new program from the admin modal
+async function handleCreateProgramSubmit(event) {
+    event.preventDefault();
+
+    // Grab input values from your modal form
+    const programCode = document.getElementById("programCode").value;
+    const programName = document.getElementById("programName").value;
+    const duration = parseInt(document.getElementById("programDuration").value, 10);
+
+    // Retrieve the JWT token stored during login
+    const token = localStorage.getItem('westridge_token');
+    if (!token) {
+        alert("Unauthorized: Please log in again.");
+        window.location.href = 'login.html';
+        return;
+    }
+
+    try {
+        // Send POST request to Go backend with Bearer token authentication
+        const response = await fetch("/api/programs", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                program_code: programCode,
+                program_name: programName,
+                duration: duration
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            if (response.status === 409) {
+                alert("Error: Program code already exists!");
+            } else if (response.status === 403) {
+                alert("Forbidden: Admin access required.");
+            } else {
+                alert("Failed to create program: " + errorText);
+            }
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(data.message || "Program created successfully!");
+            
+            // Close the modal
+            document.querySelectorAll('[id$="Modal"]').forEach(el => el.classList.add('hidden'));
+            
+            // Reset form fields or reload the page/table to show the new program
+            event.target.reset();
+            // location.reload(); 
+        } else {
+            alert("Failed to create program.");
+        }
+
+    } catch (error) {
+        console.error("Connection error:", error);
+        alert("Could not connect to the server. Is your Go backend running?");
+    }
+}
