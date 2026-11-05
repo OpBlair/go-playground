@@ -81,6 +81,16 @@ type LecturerResponse struct {
 	LastName  string `json:"last_name"`
 }
 
+// STRUCT FOR DASHBOARD RESPONSE ITEMS
+type DashBoardStats struct {
+	TotalUsers     int `json:"total_users"`
+	TotalAdmins    int `json:"total_admins"`
+	TotalLecturers int `json:"total_lecturers"`
+	TotalStudents  int `json:"total_students"`
+	TotalPrograms  int `json:"total_programs"`
+	ActiveCourses  int `json:"active_courses"`
+}
+
 // Context keys for injecting user details safely
 type contextKey string
 
@@ -472,6 +482,67 @@ func handleGetLecturers(conn *pgx.Conn) http.HandlerFunc {
 	}
 }
 
+// GET STATS API
+func handleGetStats(conn *pgx.Conn) http.HandlerFunc { // Outer Function -> The Factory
+	return func(w http.ResponseWriter, r *http.Request) { // Inner Function -> The Delivery (argument 1 is used to send data back the user, argument 2 contains all data sent by user's browser or client)
+		// Check incoming Request Method
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		ctx := r.Context()       // (The Timeline) grabs incoming http requst. It's a request's lifeline.
+		var stats DashBoardStats // (The bucket); holds data pulled from the database.
+
+		// Total Users in the system
+		err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&stats.TotalUsers) // conn is the active db connection,
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Total Active Admins in the system
+		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM users WHERE role = 'admin'").Scan(&stats.TotalAdmins)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Total Active Lecturers in the system
+		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM users WHERE role = 'lecturer'").Scan(&stats.TotalLecturers)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Total Active Students in the system
+		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM users WHERE role = 'student'").Scan(&stats.TotalStudents)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Total Active Programs in the system
+		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM programs").Scan(&stats.TotalPrograms)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Total Active courses in the system
+		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM courses").Scan(&stats.ActiveCourses)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Return JSON Response
+		w.Header().Set("Content-Type", "application/json") // Modifies http response headers (Tell receiver browser the kind of data coming)
+		w.WriteHeader(http.StatusOK)                       // Stamp of Approval; tells client browser request was processed successfully
+		json.NewEncoder(w).Encode(stats)                   // The Delivery System; w opens a direct pipeline for client browser and its streamed directly to the client by Encode after serialization
+	}
+}
+
 // ==========================================
 // SERVER & ROUTING
 // ==========================================
@@ -502,6 +573,9 @@ func startServer(conn *pgx.Conn) {
 
 	// Create Course Route
 	http.HandleFunc("/api/courses", authMiddleware(handleCreateCourse(conn), "admin"))
+
+	// Stats Route
+	http.HandleFunc("/api/stats", authMiddleware(handleGetStats(conn), "admin"))
 
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {

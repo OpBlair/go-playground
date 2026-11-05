@@ -492,3 +492,38 @@ async function handleCreateCourseSubmit(event) {
         alert("Could not connect to the server.");
     }
 }
+
+// Load Dashboard Stats
+async function loadDashboardStats() {
+    try {
+        // get token
+        const token = localStorage.getItem('westridge_token')
+
+        // make request with a valid token since it's a protected route
+        const response = await fetch("/api/stats", {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to fetch stats: ${response.status} - ${errorText}`);
+        }
+        
+        const stats = await response.json();
+
+        document.getElementById("totalUsersStat").innerHTML = stats.total_users;
+        document.getElementById("totalAdminsStat").innerHTML = stats.total_admins;
+        document.getElementById("totalLecturersStat").innerHTML = stats.total_lecturers;
+        document.getElementById("activeStudentsStat").innerHTML = stats.total_students;
+        document.getElementById("activeProgramsStat").innerHTML = stats.total_programs;
+        document.getElementById("activeCoursesStat").innerHTML = stats.active_courses;
+
+    } catch (error) {
+        console.error('Error loading dashboard stats', error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboardStats);

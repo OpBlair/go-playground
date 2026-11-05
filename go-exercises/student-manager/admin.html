@@ -61,50 +61,74 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
 
         <!-- Stats Overview Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+            
+            <!-- Total Users -->
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Users</p>
-                    <h3 class="text-2xl font-bold text-slate-800 mt-1">24</h3>
-                    <span class="text-xs text-emerald-600 font-medium mt-1 inline-block"><i class="fa-solid fa-arrow-up mr-1"></i> 3 new this week</span>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Total Users</p>
+                    <h3 class="text-xl font-bold text-slate-800 mt-1" id="totalUsersStat">0</h3>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-xs">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-base shadow-xs">
                     <i class="fa-solid fa-users"></i>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <!-- Admins -->
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active Courses</p>
-                    <h3 class="text-2xl font-bold text-slate-800 mt-1">12</h3>
-                    <span class="text-xs text-purple-600 font-medium mt-1 inline-block">Core & Electives</span>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Admins</p>
+                    <h3 class="text-xl font-bold text-slate-800 mt-1" id="totalAdminsStat">0</h3>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-book-open"></i>
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-base shadow-xs">
+                    <i class="fa-solid fa-shield-halved"></i>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <!-- Lecturers -->
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Programs</p>
-                    <h3 class="text-2xl font-bold text-slate-800 mt-1">4</h3>
-                    <span class="text-xs text-slate-500 font-medium mt-1 inline-block">Active tracks</span>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Lecturers</p>
+                    <h3 class="text-xl font-bold text-slate-800 mt-1" id="totalLecturersStat">0</h3>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-xs">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-base shadow-xs">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                </div>
+            </div>
+
+            <!-- Students -->
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Students</p>
+                    <h3 class="text-xl font-bold text-emerald-600 mt-1" id="activeStudentsStat">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base shadow-xs">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+            </div>
+
+            <!-- Programs -->
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Programs</p>
+                    <h3 class="text-xl font-bold text-slate-800 mt-1" id="activeProgramsStat">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base shadow-xs">
                     <i class="fa-solid fa-layer-group"></i>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <!-- Active Courses -->
+            <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Students</p>
-                    <h3 class="text-2xl font-bold text-emerald-600 mt-1">18</h3>
-                    <span class="text-xs text-slate-500 font-medium mt-1 inline-block">Enrolled</span>
+                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Courses</p>
+                    <h3 class="text-xl font-bold text-slate-800 mt-1" id="activeCoursesStat">0</h3>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-xs">
-                    <i class="fa-solid fa-graduation-cap"></i>
+                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-base shadow-xs">
+                    <i class="fa-solid fa-book-open"></i>
                 </div>
             </div>
+
         </div>
 
         <!-- Action / Control Toolbar -->
