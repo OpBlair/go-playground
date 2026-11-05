@@ -138,13 +138,13 @@
                     <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
-                    <input type="text" placeholder="Search programs, users or courses..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
+                    <input type="text" id="searchInput" placeholder="Search programs, users or courses..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
                 </div>
                 <select class="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition text-slate-600">
-                    <option>View: All Records</option>
-                    <option>View: Programs</option>
-                    <option>View: Users Only</option>
-                    <option>View: Courses Only</option>
+                    <option value="all_records">View: All Records</option>
+                    <option value="programs">View: Programs</option>
+                    <option value="users">View: Users Only</option>
+                    <option value="courses">View: Courses Only</option>
                 </select>
             </div>
 
@@ -165,16 +165,68 @@
             </div>
         </div>
 
-        <!-- Section: Courses Catalog Preview -->
+        <!-- Section: Programs Catalog -->
         <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-8">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-book text-slate-400"></i>
-                    <h2 class="font-semibold text-slate-800">Course Catalog (Core & Electives)</h2>
+                    <i class="fa-solid fa-layer-group text-purple-600"></i>
+                    <h2 class="font-semibold text-slate-800">Programs Catalog</h2>
                 </div>
-                <span class="text-xs text-slate-400">Linked to Program, Year & Semester</span>
+                <button onclick="openModal('addProgramModal')" class="text-xs text-purple-600 font-medium hover:underline">+ Add Program</button>
             </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/75 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
+                            <th class="py-3.5 px-6 font-semibold">Code</th>
+                            <th class="py-3.5 px-6 font-semibold">Program Name</th>
+                            <th class="py-3.5 px-6 font-semibold">Duration</th>
+                            <th class="py-3.5 px-6 font-semibold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="programsTableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
+                        <!-- Dynamically populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
+        <!-- Section: Users Management -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-users text-blue-600"></i>
+                    <h2 class="font-semibold text-slate-800">Users & Roles Management</h2>
+                </div>
+                <button onclick="openModal('addUserModal')" class="text-xs text-brand-600 font-medium hover:underline">+ Register User</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/75 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-100">
+                            <th class="py-3.5 px-6 font-semibold">Name</th>
+                            <th class="py-3.5 px-6 font-semibold">Email</th>
+                            <th class="py-3.5 px-6 font-semibold">Role</th>
+                            <th class="py-3.5 px-6 font-semibold">Assigned Program</th>
+                            <th class="py-3.5 px-6 font-semibold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
+                        <!-- Dynamically populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section: Courses Catalog -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden mb-8">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-book text-emerald-600"></i>
+                    <h2 class="font-semibold text-slate-800">Course Catalog</h2>
+                </div>
+                <button onclick="openModal('addCourseModal')" class="text-xs text-slate-800 font-medium hover:underline">+ Create Course</button>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -183,24 +235,11 @@
                             <th class="py-3.5 px-6 font-semibold">Course Title</th>
                             <th class="py-3.5 px-6 font-semibold">Type</th>
                             <th class="py-3.5 px-6 font-semibold">Year / Sem</th>
-                            <th class="py-3.5 px-6 font-semibold">Capacity</th>
                             <th class="py-3.5 px-6 font-semibold text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100 text-sm text-slate-600">
-                        <tr class="hover:bg-slate-50/50 transition">
-                            <td class="py-4 px-6 font-mono font-semibold text-slate-800">CS101</td>
-                            <td class="py-4 px-6 font-medium text-slate-800">Introduction to Programming</td>
-                            <td class="py-4 px-6">
-                                <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Core</span>
-                            </td>
-                            <td class="py-4 px-6 font-mono text-xs text-slate-600">Year 1, Sem 1</td>
-                            <td class="py-4 px-6">50</td>
-                            <td class="py-4 px-6 text-right space-x-1">
-                                <button class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i class="fa-solid fa-trash-can"></i></button>
-                            </td>
-                        </tr>
+                    <tbody id="coursesTableBody" class="divide-y divide-slate-100 text-sm text-slate-600">
+                        <!-- Dynamically populated via JS -->
                     </tbody>
                 </table>
             </div>

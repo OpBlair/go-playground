@@ -220,6 +220,7 @@ async function handleCreateProgramSubmit(event) {
             // Reset form fields or reload the page/table to show the new program
             event.target.reset();
             // location.reload(); 
+            loadDashboardStats();
         } else {
             alert("Failed to create program.");
         }
@@ -343,6 +344,7 @@ async function handleCreateUserSubmit(event) {
             // Reset form fields
             event.target.reset();
             // location.reload(); // Uncomment to refresh the user list
+            loadDashboardStats();
         } else {
             alert("Failed to register user.");
         }
@@ -483,6 +485,7 @@ async function handleCreateCourseSubmit(event) {
             document.querySelectorAll('[id$="Modal"]').forEach(el => el.classList.add('hidden'));
             event.target.reset();
             // location.reload(); // Optional reload
+            loadDashboardStats();
         } else {
             alert("Failed to create course.");
         }
@@ -526,4 +529,148 @@ async function loadDashboardStats() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', loadDashboardStats);
+// Program Frontend Preview 
+async function loadProgramsTable() {
+    const token = localStorage.getItem('westridge_token');
+    if (!token) return;
+
+    try {
+        const response = await fetch("/api/programs-list", {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch programs");
+
+        const programs = await response.json();
+        const tbody = document.getElementById("programsTableBody");
+        tbody.innerHTML = "";
+
+        if (!programs || programs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-4 px-6 text-center text-slate-400">No programs found.</td></tr>`;
+            return;
+        }
+
+        programs.forEach(prog => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50/50 transition";
+            tr.innerHTML = `
+                <td class="py-4 px-6 font-mono font-semibold text-slate-800">${prog.code}</td>
+                <td class="py-4 px-6 font-medium text-slate-800">${prog.name}</td>
+                <td class="py-4 px-6">${prog.duration} Years</td>
+                <td class="py-4 px-6 text-right space-x-1">
+                    <button onclick="deleteProgram(${prog.id})" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error loading programs table:", error);
+    }
+}
+
+// Load Users Table
+async function loadUsersTable() {
+    const token = localStorage.getItem('westridge_token');
+    if (!token) return;
+
+    try {
+        const response = await fetch("/api/users-list", {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch users");
+
+        const users = await response.json();
+        const tbody = document.getElementById("usersTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        if (!users || users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-6 text-center text-slate-400">No users found.</td></tr>`;
+            return;
+        }
+
+        users.forEach(user => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50/50 transition";
+            
+            // Badge color styling based on role
+            let roleBadge = `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">${user.role}</span>`;
+            if (user.role === 'admin') roleBadge = `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Admin</span>`;
+            if (user.role === 'lecturer') roleBadge = `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Lecturer</span>`;
+            if (user.role === 'student') roleBadge = `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Student</span>`;
+
+            tr.innerHTML = `
+                <td class="py-4 px-6 font-medium text-slate-800">${user.first_name} ${user.last_name}</td>
+                <td class="py-4 px-6 text-slate-600">${user.email}</td>
+                <td class="py-4 px-6">${roleBadge}</td>
+                <td class="py-4 px-6 text-slate-600">${user.assigned_program}</td>
+                <td class="py-4 px-6 text-right space-x-1">
+                    <button class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error loading users table:", error);
+    }
+}
+
+// Load Courses Table
+async function loadCoursesTable() {
+    const token = localStorage.getItem('westridge_token');
+    if (!token) return;
+
+    try {
+        const response = await fetch("/api/courses-list", {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch courses");
+
+        const courses = await response.json();
+        const tbody = document.getElementById("coursesTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        if (!courses || courses.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="py-4 px-6 text-center text-slate-400">No courses found.</td></tr>`;
+            return;
+        }
+
+        courses.forEach(course => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50/50 transition";
+            
+            const typeBadge = course.is_elective 
+                ? `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Elective</span>`
+                : `<span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Core</span>`;
+
+            tr.innerHTML = `
+                <td class="py-4 px-6 font-mono font-semibold text-slate-800">${course.code}</td>
+                <td class="py-4 px-6 font-medium text-slate-800">${course.title}</td>
+                <td class="py-4 px-6">${typeBadge}</td>
+                <td class="py-4 px-6 font-mono text-xs text-slate-600">Year ${course.academic_year}, Sem ${course.semester}</td>
+                <td class="py-4 px-6 text-right space-x-1">
+                    <button class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i class="fa-solid fa-trash-can"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (error) {
+        console.error("Error loading courses table:", error);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboardStats();
+    loadProgramsTable();
+    loadUsersTable();
+    loadCoursesTable();
+});

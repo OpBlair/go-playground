@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -91,6 +91,27 @@ type DashBoardStats struct {
 	ActiveCourses  int `json:"active_courses"`
 }
 
+// STRUCT FOR USER RECORDS
+type UserResponse struct {
+	ID              string `json:"id"`
+	FirstName       string `json:"first_name"`
+	LastName        string `json:"last_name"`
+	Email           string `json:"email"`
+	Role            string `json:"role"`
+	AssignedProgram string `json:"assigned_program,omitempty"`
+}
+
+// STRUCT FOR COURSE RECORDS
+type CourseResponse struct {
+	ID           int    `json:"id"`
+	Code         string `json:"code"`
+	Title        string `json:"title"`
+	IsElective   bool   `json:"is_elective"`
+	AcademicYear int    `json:"academic_year"`
+	Semester     int    `json:"semester"`
+	Capacity     int    `json:"capacity"`
+}
+
 // Context keys for injecting user details safely
 type contextKey string
 
@@ -115,14 +136,14 @@ func loadConfig() Config {
 	}
 }
 
-func connectDB(ctx context.Context) *pgx.Conn {
+func connectDB(ctx context.Context) *pgxpool.Pool {
 	dbConn := os.Getenv("DB_CONN")
-	conn, err := pgx.Connect(ctx, dbConn)
+	pool, err := pgxpool.New(ctx, dbConn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to connect to database pool: %v\n", err)
 		os.Exit(1)
 	}
-	return conn
+	return pool
 }
 
 // ==========================================
@@ -194,7 +215,7 @@ func generateJWT(userID, role string) (string, error) {
 // ==========================================
 
 // LOGIN API
-func handleLogin(conn *pgx.Conn) http.HandlerFunc {
+func handleLogin(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -245,7 +266,7 @@ func handleLogin(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // CREATE PROGRAM API
-func handleCreateProgram(conn *pgx.Conn) http.HandlerFunc {
+func handleCreateProgram(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Check method type
 		if r.Method != http.MethodPost {
@@ -298,7 +319,7 @@ func handleCreateProgram(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // HANDLE GET PROGRAMS (Public or Protected - protected for admins/users)
-func handleGetPrograms(conn *pgx.Conn) http.HandlerFunc {
+func handleGetPrograms(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -329,7 +350,7 @@ func handleGetPrograms(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // CREATE USER API
-func handleCreateUser(conn *pgx.Conn) http.HandlerFunc {
+func handleCreateUser(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Check method type
 		if r.Method != http.MethodPost {
@@ -389,7 +410,7 @@ func handleCreateUser(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // CREATE COURSE API
-func handleCreateCourse(conn *pgx.Conn) http.HandlerFunc {
+func handleCreateCourse(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -452,7 +473,7 @@ func handleCreateCourse(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // GET LECTURERS API
-func handleGetLecturers(conn *pgx.Conn) http.HandlerFunc {
+func handleGetLecturers(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -483,7 +504,7 @@ func handleGetLecturers(conn *pgx.Conn) http.HandlerFunc {
 }
 
 // GET STATS API
-func handleGetStats(conn *pgx.Conn) http.HandlerFunc { // Outer Function -> The Factory
+func handleGetStats(conn *pgxpool.Pool) http.HandlerFunc { // Outer Function -> The Factory
 	return func(w http.ResponseWriter, r *http.Request) { // Inner Function -> The Delivery (argument 1 is used to send data back the user, argument 2 contains all data sent by user's browser or client)
 		// Check incoming Request Method
 		if r.Method != http.MethodGet {
@@ -543,11 +564,102 @@ func handleGetStats(conn *pgx.Conn) http.HandlerFunc { // Outer Function -> The 
 	}
 }
 
+// HANDLE GET USERS
+func handleGetUsers(conn *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Explicitly cast u.role::text to prevent ENUM scanning errors in pgx
+		query := `
+            SELECT u.id::text, u.first_name, u.last_name, u.email, u.role::text, p.name 
+            FROM users u 
+            LEFT JOIN programs p ON u.program_id = p.id 
+            ORDER BY u.last_name ASC
+        `
+		rows, err := conn.Query(r.Context(), query)
+		if err != nil {
+			log.Printf("DB Query Error (Users): %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var users []UserResponse
+		for rows.Next() {
+			var u UserResponse
+			var progName *string
+			if err := rows.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Email, &u.Role, &progName); err != nil {
+				log.Printf("Scan Error (Users): %v\n", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			// Smart role-based fallback when program is not applicable
+			if progName != nil {
+				u.AssignedProgram = *progName
+			} else {
+				switch u.Role {
+				case "admin":
+					u.AssignedProgram = "System-wide"
+				case "lecturer":
+					u.AssignedProgram = "Faculty / General"
+				default:
+					u.AssignedProgram = "Unassigned"
+				}
+			}
+			users = append(users, u)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(users)
+	}
+}
+
+// HANDLE GET COURSES
+func handleGetCourses(conn *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		query := `
+            SELECT id, code, title, is_elective, academic_year, semester 
+            FROM courses 
+            ORDER BY code ASC
+        `
+		rows, err := conn.Query(r.Context(), query)
+		if err != nil {
+			log.Printf("DB Query Error (Courses): %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var courses []CourseResponse
+		for rows.Next() {
+			var c CourseResponse
+			if err := rows.Scan(&c.ID, &c.Code, &c.Title, &c.IsElective, &c.AcademicYear, &c.Semester); err != nil {
+				log.Printf("Scan Error (Courses): %v\n", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			courses = append(courses, c)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(courses)
+	}
+}
+
 // ==========================================
 // SERVER & ROUTING
 // ==========================================
 
-func startServer(conn *pgx.Conn) {
+func startServer(conn *pgxpool.Pool) {
 	fs := http.FileServer(http.Dir("./"))
 	http.Handle("/", fs)
 
@@ -577,6 +689,12 @@ func startServer(conn *pgx.Conn) {
 	// Stats Route
 	http.HandleFunc("/api/stats", authMiddleware(handleGetStats(conn), "admin"))
 
+	// users list Route
+	http.HandleFunc("/api/users-list", authMiddleware(handleGetUsers(conn), ""))
+
+	// courses list Route
+	http.HandleFunc("/api/courses-list", authMiddleware(handleGetCourses(conn), ""))
+
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {
 		serverPort = "8080"
@@ -600,9 +718,9 @@ func main() {
 	log.Println("Server initializing configuration...")
 
 	ctx := context.Background()
-	conn := connectDB(ctx)
-	defer conn.Close(ctx)
+	dbPool := connectDB(ctx)
+	defer dbPool.Close()
 
 	fmt.Println("Successfully connected to Westridge DB!")
-	startServer(conn)
+	startServer(dbPool)
 }
