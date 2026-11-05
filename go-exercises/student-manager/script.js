@@ -668,6 +668,33 @@ async function loadCoursesTable() {
     }
 }
 
+// Switches dashboard table views dynamically based on dropdown selection
+function filterDashboardViews(viewType) {
+    const programsDiv = document.getElementById('programsSection');
+    const usersDiv = document.getElementById('usersSection');
+    const coursesDiv = document.getElementById('coursesSection');
+
+    if (!programsDiv || !usersDiv || !coursesDiv) return;
+
+    // Reset visibility by removing hidden class from all
+    programsDiv.classList.remove('hidden');
+    usersDiv.classList.remove('hidden');
+    coursesDiv.classList.remove('hidden');
+
+    // Filter based on selection
+    if (viewType === 'programs') {
+        usersDiv.classList.add('hidden');
+        coursesDiv.classList.add('hidden');
+    } else if (viewType === 'users') {
+        programsDiv.classList.add('hidden');
+        coursesDiv.classList.add('hidden');
+    } else if (viewType === 'courses') {
+        programsDiv.classList.add('hidden');
+        usersDiv.classList.add('hidden');
+    }
+    // If 'all', all divs remain visible naturally in their separate cards
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardStats();
     loadProgramsTable();
