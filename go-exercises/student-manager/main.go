@@ -852,6 +852,11 @@ func startServer(conn *pgxpool.Pool) {
 	// courses list Route
 	http.HandleFunc("/api/courses-list", authMiddleware(handleGetCourses(conn), ""))
 
+	// Notification Routes
+	http.HandleFunc("/api/notifications", authMiddleware(handleGetNotifications(conn), ""))
+	http.HandleFunc("/api/notifications/broadcast", authMiddleware(handleCreateNotification(conn), "admin"))
+	http.HandleFunc("/api/notifications/read", authMiddleware(handleMarkNotificationRead(conn), ""))
+
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {
 		serverPort = "8080"
