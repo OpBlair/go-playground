@@ -55,6 +55,14 @@ if (loginForm) {
     });
 }
 
+// Handle user Logout
+function handleLogout() {
+    localStorage.removeItem('westridge_token');
+    localStorage.removeItem('westridge_role');
+
+    window.location.replace('login.html');
+}
+
 // Opens a specific modal window
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -696,6 +704,15 @@ function filterDashboardViews(viewType) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('westridge_token');
+    const role = localStorage.getItem('westridge_role');
+
+    // If there's no token or they aren't an admin on an admin page, bounce them
+    if (!token || role !== 'admin') {
+        window.location.replace('login.html');
+        return;
+    }
+    
     loadDashboardStats();
     loadProgramsTable();
     loadUsersTable();
