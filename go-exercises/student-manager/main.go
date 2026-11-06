@@ -112,6 +112,21 @@ type CourseResponse struct {
 	Capacity     int    `json:"capacity"`
 }
 
+// Struct for creating a notification request
+type CreateNotificationRequest struct {
+	Title   string `json:"title"`
+	Message string `json:"message"`
+}
+
+// Struct for notification response items
+type NotificationResponse struct {
+	ID        int       `json:"id"`
+	Title     string    `json:"title"`
+	Message   string    `json:"message"`
+	IsRead    bool      `json:"is_read"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 // Context keys for injecting user details safely
 type contextKey string
 
@@ -652,6 +667,148 @@ func handleGetCourses(conn *pgxpool.Pool) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(courses)
+	}
+}
+
+// 1. ADMIN BROADCAST NOTIFICATION
+func handleCreateNotification(conn *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok || claims.Role != "admin" {
+			http.Error(w, "Forbidden: Admins only", http.StatusForbidden)
+			return
+		}
+
+		var req CreateNotificationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+
+		// Begin transaction because we insert into notifications and fan out to recipients
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback(ctx)
+
+		// Insert notification and get its new ID
+		var notificationID int
+		err = tx.QueryRow(ctx, "INSERT INTO notifications (title, message) VALUES ($1, $2) RETURNING id", req.Title, req.Message).Scan(&notificationID)
+		if err != nil {
+			http.Error(w, "Failed to create notification", http.StatusInternalServerError)
+			return
+		}
+
+		// Fan out to all users in the system via the junction table
+		_, err = tx.Exec(ctx, `
+            INSERT INTO notification_recipients (notification_id, user_id)
+            SELECT $1, id FROM users
+        `, notificationID)
+		if err != nil {
+			http.Error(w, "Failed to dispatch notification recipients", http.StatusInternalServerError)
+			return
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			http.Error(w, "Failed to commit notification transaction", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Notification broadcasted successfully!",
+		})
+	}
+}
+
+// 2. GET USER NOTIFICATIONS
+func handleGetNotifications(conn *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		query := `
+            SELECT n.id, n.title, n.message, nr.is_read, n.created_at
+            FROM notifications n
+            JOIN notification_recipients nr ON n.id = nr.notification_id
+            WHERE nr.user_id = $1
+            ORDER BY n.created_at DESC
+        `
+		rows, err := conn.Query(r.Context(), query, claims.UserID)
+		if err != nil {
+			http.Error(w, "Failed to fetch notifications", http.StatusInternalServerError)
+			return
+		}
+		defer rows.Close()
+
+		var notifications []NotificationResponse
+		for rows.Next() {
+			var n NotificationResponse
+			if err := rows.Scan(&n.ID, &n.Title, &n.Message, &n.IsRead, &n.CreatedAt); err != nil {
+				http.Error(w, "Error parsing notifications", http.StatusInternalServerError)
+				return
+			}
+			notifications = append(notifications, n)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(notifications)
+	}
+}
+
+// 3. MARK NOTIFICATION AS READ
+func handleMarkNotificationRead(conn *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var req struct {
+			NotificationID int `json:"notification_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		query := `
+            UPDATE notification_recipients 
+            SET is_read = TRUE, read_at = CURRENT_TIMESTAMP 
+            WHERE notification_id = $1 AND user_id = $2
+        `
+		_, err := conn.Exec(r.Context(), query, req.NotificationID, claims.UserID)
+		if err != nil {
+			http.Error(w, "Failed to update notification status", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 	}
 }
 
