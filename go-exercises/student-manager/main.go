@@ -127,6 +127,12 @@ type NotificationResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// Struct for password change response items
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
 // Context keys for injecting user details safely
 type contextKey string
 
@@ -670,7 +676,7 @@ func handleGetCourses(conn *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
-// 1. ADMIN BROADCAST NOTIFICATION
+// ADMIN BROADCAST NOTIFICATION
 func handleCreateNotification(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -731,7 +737,7 @@ func handleCreateNotification(conn *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
-// 2. GET USER NOTIFICATIONS
+// GET USER NOTIFICATIONS
 func handleGetNotifications(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -774,7 +780,7 @@ func handleGetNotifications(conn *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
-// 3. MARK NOTIFICATION AS READ
+// MARK NOTIFICATION AS READ
 func handleMarkNotificationRead(conn *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -809,6 +815,65 @@ func handleMarkNotificationRead(conn *pgxpool.Pool) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+	}
+}
+
+// Change password API
+func handleChangePassword(conn *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var req ChangePasswordRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+
+		// Fetch current stored password hash for the user
+		var storedHash string
+		err := conn.QueryRow(ctx, "SELECT password_hash FROM users WHERE id = $1", claims.UserID).Scan(&storedHash)
+		if err != nil {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+
+		// Verify old password
+		err = bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(req.OldPassword))
+		if err != nil {
+			http.Error(w, "Incorrect old password", http.StatusUnauthorized)
+			return
+		}
+
+		// Hash the new password securely
+		newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			http.Error(w, "Failed to process new password", http.StatusInternalServerError)
+			return
+		}
+
+		// Update database
+		_, err = conn.Exec(ctx, "UPDATE users SET password_hash = $1 WHERE id = $2", string(newHashedPassword), claims.UserID)
+		if err != nil {
+			http.Error(w, "Failed to update password in database", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "Password changed successfully!",
+		})
 	}
 }
 
@@ -856,6 +921,9 @@ func startServer(conn *pgxpool.Pool) {
 	http.HandleFunc("/api/notifications", authMiddleware(handleGetNotifications(conn), ""))
 	http.HandleFunc("/api/notifications/broadcast", authMiddleware(handleCreateNotification(conn), "admin"))
 	http.HandleFunc("/api/notifications/read", authMiddleware(handleMarkNotificationRead(conn), ""))
+
+	// Password Change Route
+	http.HandleFunc("/api/auth/change-password", authMiddleware(handleChangePassword(conn), ""))
 
 	serverPort := os.Getenv("PORT")
 	if serverPort == "" {
