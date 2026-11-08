@@ -106,3 +106,13 @@ CREATE TABLE notification_recipients (
     read_at TIMESTAMP WITH TIME ZONE,
     PRIMARY KEY (notification_id, user_id)
 );
+
+-- Audit Trail Log
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id SERIAL PRIMARY KEY,
+    actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(100) NOT NULL,
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
