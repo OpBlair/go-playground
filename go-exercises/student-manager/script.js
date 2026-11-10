@@ -703,6 +703,55 @@ function filterDashboardViews(viewType) {
     // If 'all', all divs remain visible naturally in their separate cards
 }
 
+// Function to handle Change Password
+async function handleChangePasswordSubmit(event) {
+    event.preventDefault();
+
+    const oldPassword = document.getElementById("oldPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const token = localStorage.getItem('westridge_token');
+
+    if (!token) {
+        alert("Unauthorized. Please log in again.");
+        window.location.href = 'login.html';
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/auth/change-password", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                old_password: oldPassword,
+                new_password: newPassword
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            if (response.status === 401) {
+                alert("Incorrect current password.");
+            } else {
+                alert("Failed to change password: " + errorText);
+            }
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message || "Password changed successfully!");
+            closeModal('settingsModal');
+            event.target.reset();
+        }
+    } catch (error) {
+        console.error("Change password error:", error);
+        alert("Could not connect to the server.");
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('westridge_token');
     const role = localStorage.getItem('westridge_role');
