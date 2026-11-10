@@ -73,6 +73,8 @@ function openModal(modalId) {
             loadProgramsIntoDropdown();
         } else if (modalId === 'addCourseModal') {
             loadCourseModalData();
+        } else if (modalId === 'notificationsModal') {
+            loadNotifications();
         }
     }
 }
@@ -749,6 +751,112 @@ async function handleChangePasswordSubmit(event) {
     } catch (error) {
         console.error("Change password error:", error);
         alert("Could not connect to the server.");
+    }
+}
+
+// Function to link wire up notificactions 
+async function loadNotifications() {
+    const token = localStorage.getItem('westridge_token');
+    const list = document.getElementById('notificationsList');
+    if (!token || !list) return;
+
+    try {
+        const response = await fetch("/api/notifications", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error("Failed to load notifications");
+
+        const notifications = await response.json();
+        list.innerHTML = "";
+
+        if (!notifications || notifications.length === 0) {
+            list.innerHTML = `<p class="text-center text-slate-400 py-4">No notifications yet.</p>`;
+            return;
+        }
+
+        notifications.forEach(n => {
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-xl border ${n.is_read ? 'bg-slate-50 border-slate-100' : 'bg-emerald-50/50 border-emerald-100'}`;
+            div.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <p class="font-bold ${n.is_read ? 'text-slate-800' : 'text-emerald-900'}">${n.title}</p>
+                    ${!n.is_read ? `
+                        <button onclick="markNotificationRead(${n.id})" 
+                                class="text-[10px] text-brand-600 hover:underline whitespace-nowrap">
+                            Mark read
+                        </button>` : ''}
+                </div>
+                <p class="text-slate-600 mt-0.5">${n.message}</p>
+                <span class="text-[10px] text-slate-400 mt-1 block">
+                    ${new Date(n.created_at).toLocaleString()}
+                </span>
+            `;
+            list.appendChild(div);
+        });
+    } catch (error) {
+        console.error("Error loading notifications:", error);
+        list.innerHTML = `<p class="text-center text-red-400 py-4">Failed to load notifications</p>`;
+    }
+}
+
+async function handleBroadcastNotification(event) {
+    event.preventDefault();
+
+    const title = document.getElementById("notifTitle").value.trim();
+    const message = document.getElementById("notifMessage").value.trim();
+    const token = localStorage.getItem('westridge_token');
+
+    if (!title || !message) {
+        alert("Title and message are required.");
+        return;
+    }
+
+    try {
+        const response = await fetch("/api/notifications/broadcast", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ title, message })
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            alert("Failed to broadcast: " + err);
+            return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message || "Notification sent successfully!");
+            event.target.reset();
+            loadNotifications(); // refresh the list
+        }
+    } catch (error) {
+        console.error(error);
+        alert("Could not connect to the server.");
+    }
+}
+
+async function markNotificationRead(notificationId) {
+    const token = localStorage.getItem('westridge_token');
+    try {
+        const response = await fetch("/api/notifications/read", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ notification_id: notificationId })
+        });
+
+        if (response.ok) {
+            loadNotifications(); // refresh after marking read
+        }
+    } catch (error) {
+        console.error("Failed to mark as read:", error);
     }
 }
 

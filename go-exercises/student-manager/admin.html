@@ -262,48 +262,32 @@
     <div id="notificationsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                <h3 class="font-bold text-slate-800"><i class="fa-solid fa-bell text-brand-600 mr-2"></i> System & Admin Notifications</h3>
-                <button onclick="closeModal('notificationsModal')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="space-y-3 max-h-64 overflow-y-auto pr-1 text-xs">
-                <div class="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
-                    <p class="font-bold text-emerald-900">New User Registrations</p>
-                    <p class="text-slate-600 mt-0.5">3 new student accounts were created and auto-assigned to programs today.</p>
-                    <span class="text-[10px] text-slate-400 mt-1 block">2 hours ago</span>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <p class="font-bold text-slate-800">Database Backup Successful</p>
-                    <p class="text-slate-600 mt-0.5">Automated PostgreSQL snapshot completed successfully.</p>
-                    <span class="text-[10px] text-slate-400 mt-1 block">Yesterday</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
-                <h3 class="font-bold text-slate-800">Account Settings</h3>
-                <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-slate-600">
+                <h3 class="font-bold text-slate-800">
+                    <i class="fa-solid fa-bell text-brand-600 mr-2"></i> Notifications
+                </h3>
+                <button onclick="closeModal('notificationsModal')" class="text-slate-400 hover:text-slate-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <form onsubmit="handleChangePasswordSubmit(event)" class="space-y-4 text-xs">
-                <div>
-                    <label class="block font-semibold text-slate-600 uppercase mb-1">Current Password</label>
-                    <input type="password" id="oldPassword" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div>
-                    <label class="block font-semibold text-slate-600 uppercase mb-1">New Password</label>
-                    <input type="password" id="newPassword" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-                </div>
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="closeModal('settingsModal')" class="px-4 py-2 bg-slate-100 text-slate-700 text-sm rounded-xl">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm rounded-xl">Update Password</button>
-                </div>
+            <!-- Broadcast form (Admin only) -->
+            <form id="broadcastForm" onsubmit="handleBroadcastNotification(event)" 
+                class="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <p class="text-xs font-semibold text-slate-600 uppercase">Broadcast to all users</p>
+                <input id="notifTitle" type="text" required placeholder="Notification title"
+                    class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <textarea id="notifMessage" required rows="2" placeholder="Write your message..."
+                        class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+                <button type="submit"
+                        class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition">
+                    Send Broadcast
+                </button>
             </form>
+
+            <!-- Notifications list -->
+            <div id="notificationsList" class="space-y-3 max-h-64 overflow-y-auto pr-1 text-xs">
+                <p class="text-center text-slate-400 py-4">Loading notifications...</p>
+            </div>
         </div>
     </div>
 
