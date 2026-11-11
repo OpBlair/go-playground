@@ -68,7 +68,7 @@ function handleLogout() {
     }
 
     // Replace history state so they can't go "Back" into the dashboard
-    window.location.replace('login.html');
+    window.location.replace('index.html');
 }
 
 // Opens a specific modal window
@@ -196,7 +196,7 @@ async function handleCreateProgramSubmit(event) {
     const token = localStorage.getItem('westridge_token');
     if (!token) {
         alert("Unauthorized: Please log in again.");
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return;
     }
 
@@ -317,7 +317,7 @@ async function handleCreateUserSubmit(event) {
     const token = localStorage.getItem('westridge_token');
     if (!token) {
         alert("Unauthorized: Please log in again.");
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return;
     }
 
@@ -723,7 +723,7 @@ async function handleChangePasswordSubmit(event) {
 
     if (!token) {
         alert("Unauthorized. Please log in again.");
-        window.location.href = 'login.html';
+        window.location.href = 'index.html';
         return;
     }
 
@@ -869,9 +869,9 @@ async function markNotificationRead(notificationId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if the current page is login.html
+    // Check if the current page is index.html
     const path = window.location.pathname;
-    const isLoginPage = path.endsWith('login.html') || path === '/' || path === '';
+    const isLoginPage = path.endsWith('index.html') || path === '/' || path === '';
 
     if (isLoginPage) {
         // If already logged in and visiting login page, optionally bounce them straight to their dashboard
@@ -891,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // If there's no token or they aren't an admin on the admin page, bounce them
     if (!token || role !== 'admin') {
-        window.location.replace('login.html');
+        window.location.replace('index.html');
         return;
     }
 
@@ -906,11 +906,11 @@ window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
         const token = localStorage.getItem('westridge_token');
         const path = window.location.pathname;
-        const isLoginPage = path.endsWith('login.html') || path === '/' || path === '';
+        const isLoginPage = path.endsWith('index.html') || path === '/' || path === '';
         
         // If they hit 'Back' to get to login page without a token, or back into dashboard without a token, force correct state
         if (!isLoginPage && !token) {
-            window.location.replace('login.html');
+            window.location.replace('index.html');
         }
     }
 });
