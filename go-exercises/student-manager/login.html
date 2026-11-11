@@ -17,6 +17,14 @@
                 }
             }
         }
+        
+        window.addEventListener('pageshow', (event) => {
+            // If the page is loaded from the browser's back/forward cache
+            if (event.persisted) {
+                // Force the browser to reload the page fresh from the server/memory state
+                window.location.reload();
+            }
+        });
     </script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex items-center justify-center p-4">

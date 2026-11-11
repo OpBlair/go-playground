@@ -57,9 +57,17 @@ if (loginForm) {
 
 // Handle user Logout
 function handleLogout() {
+    // Clear all auth storage
     localStorage.removeItem('westridge_token');
     localStorage.removeItem('westridge_role');
 
+    // Reset the login form if it exists on the page
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm) {
+        loginForm.reset();
+    }
+
+    // Replace history state so they can't go "Back" into the dashboard
     window.location.replace('login.html');
 }
 
@@ -861,17 +869,64 @@ async function markNotificationRead(notificationId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('westridge_token');
-    const role = localStorage.getItem('westridge_role');
+    // Check if the current page is login.html
+    const path = window.location.pathname;
+    const isLoginPage = path.endsWith('login.html') || path === '/' || path === '';
 
-    // If there's no token or they aren't an admin on an admin page, bounce them
+    if (isLoginPage) {
+        // If already logged in and visiting login page, optionally bounce them straight to their dashboard
+        const token = localStorage.getItem('westridge_token');
+        const role = (localStorage.getItem('westridge_role') || '').toLowerCase();
+        if (token) {
+            if (role === 'admin') window.location.replace('admin.html');
+            else if (role === 'lecturer') window.location.replace('lecturer.html');
+            else window.location.replace('student.html');
+        }
+        return; // Stop execution here so login page never loops!
+    }
+
+    // --- PROTECTED PAGES LOGIC BELOW ---
+    const token = localStorage.getItem('westridge_token');
+    const role = (localStorage.getItem('westridge_role') || '').toLowerCase();
+
+    // If there's no token or they aren't an admin on the admin page, bounce them
     if (!token || role !== 'admin') {
         window.location.replace('login.html');
         return;
     }
-    
+
     loadDashboardStats();
     loadProgramsTable();
     loadUsersTable();
     loadCoursesTable();
+});
+
+// EXTRA SAFETY: Handle browser back/forward cache (bfcache) reloads
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        const token = localStorage.getItem('westridge_token');
+        const path = window.location.pathname;
+        const isLoginPage = path.endsWith('login.html') || path === '/' || path === '';
+        
+        // If they hit 'Back' to get to login page without a token, or back into dashboard without a token, force correct state
+        if (!isLoginPage && !token) {
+            window.location.replace('login.html');
+        }
+    }
+});
+
+// Force clear the login form when navigating back via browser history
+window.addEventListener('pageshow', (event) => {
+    // event.persisted is true if the page was loaded from the browser's back/forward cache
+    if (event.persisted) {
+        const loginForm = document.getElementById("loginForm");
+        if (loginForm) {
+            loginForm.reset();
+        }
+        // Also explicitly clear password fields just in case
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("password");
+        if (emailInput) emailInput.value = "";
+        if (passwordInput) passwordInput.value = "";
+    }
 });
