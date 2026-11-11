@@ -868,6 +868,40 @@ async function markNotificationRead(notificationId) {
     }
 }
 
+function handleSearch() {
+    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+
+    // Helper to filter a table body
+    function filterTable(tbodyId, columnsToSearch) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(row => {
+            // Skip the "No ... found" empty state row
+            if (row.querySelector('td[colspan]')) {
+                row.style.display = query ? 'none' : '';
+                return;
+            }
+
+            const text = columnsToSearch
+                .map(idx => row.children[idx]?.textContent.toLowerCase() || '')
+                .join(' ');
+
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    }
+
+    // Programs table: Code (0), Name (1)
+    filterTable('programsTableBody', [0, 1]);
+
+    // Users table: Name (0), Email (1), Role (2), Program (3)
+    filterTable('usersTableBody', [0, 1, 2, 3]);
+
+    // Courses table: Code (0), Title (1)
+    filterTable('coursesTableBody', [0, 1]);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Check if the current page is index.html
     const path = window.location.pathname;
